@@ -743,3 +743,118 @@ h1 em {
   .btn-primary { padding: 12px 32px; }
   .tasks-header { flex-direction: column; align-items: flex-start; }
 }
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  /* Larger touch targets */
+  .mode-tab,
+  .btn,
+  .task-check,
+  .task-delete {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .task-delete {
+    padding: 12px;
+  }
+  
+  /* Prevent zoom on input focus */
+  .task-input {
+    font-size: 16px;
+  }
+  
+  /* Better spacing for mobile */
+  .container {
+    padding: 20px 16px 40px;
+  }
+  
+  .timer-card {
+    padding: 12px 20px 24px;
+  }
+  
+  /* Make sync indicator more visible on mobile */
+  #syncIndicator {
+    width: 14px;
+    height: 14px;
+    bottom: 16px;
+    right: 16px;
+  }
+}
+
+/* Add viewport meta for proper mobile scaling */
+@media (max-width: 480px) {
+  .ring-container {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .ring-svg {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .timer-display {
+    font-size: 42px;
+  }
+}
+
+.welcome-quote {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-light);
+  border-left: 3px solid var(--primary);
+  text-align: left;
+  padding: 10px 14px;
+  background: var(--primary-light);
+  border-radius: 2px;
+  line-height: 1.6;
+  margin-bottom: 28px;
+  min-height: 80px; /* Ensure enough space */
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  word-wrap: break-word;
+}
+
+/* Style for empty welcome quote - show placeholder */
+.welcome-quote:empty::before {
+  content: "⚜ Preparing your inspiration...";
+  color: var(--ink-light);
+  font-style: italic;
+}
+
+
+.sync-notification {
+  position: fixed;
+  bottom: 80px;
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--primary), var(--primary-deep));
+  color: white;
+  padding: 12px 24px;
+  border-radius: 40px;
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  z-index: 1000;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.sync-notification.show {
+  display: block !important;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}

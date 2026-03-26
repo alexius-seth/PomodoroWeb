@@ -6,6 +6,11 @@
   <title>Personalized Pomodoro for Her</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pomodoro">
 </head>
 <body>
 
@@ -122,6 +127,15 @@
 
   </div>
 
-  <script src="app.js"></script>
+
+
+  <!-- Sync Status Indicator -->
+<div id="syncIndicator" style="position: fixed; bottom: 20px; right: 20px; width: 10px; height: 10px; border-radius: 50%; background: #4caf50; z-index: 1000;"></div>
+
+<!-- Sync Notification -->
+<div id="syncNotification" class="notification sync-notification" style="display: none;">Syncing...</div>
+  
+<script src="app.js"></script>
+
 </body>
 </html>

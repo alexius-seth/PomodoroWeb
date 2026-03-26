@@ -94,14 +94,38 @@ function loadState() {
 
 function saveState() {
   lsSet(KEYS.sessionsToday, sessionsToday);
-  lsSet(KEYS.minutesTotal,  minutesTotal);
+  lsSet(KEYS.minutesTotal, minutesTotal);
   lsSet(KEYS.lastStudyDate, todayStr());
+  
+  // Queue for sync (if sync manager exists)
+  if (window.syncManager && window.syncManager.isOnline) {
+    window.syncManager.queueDataForSync({
+      type: 'STATE_UPDATE',
+      data: {
+        sessionsToday: sessionsToday,
+        minutesTotal: minutesTotal,
+        lastStudyDate: todayStr(),
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
 }
 
+// Replace your existing saveTasks function
 function saveTasks() {
   lsSet(KEYS.tasks, tasks);
+  
+  // Queue for sync (if sync manager exists)
+  if (window.syncManager && window.syncManager.isOnline) {
+    window.syncManager.queueDataForSync({
+      type: 'TASKS_UPDATE',
+      data: {
+        tasks: tasks,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
 }
-
 /* ══════════════════════════════════════════════════════════
    STATE
    ══════════════════════════════════════════════════════════ */
@@ -152,13 +176,38 @@ const els = {
    ══════════════════════════════════════════════════════════ */
 
 function initWelcome() {
-  const q = WELCOME_QUOTES[Math.floor(Math.random() * WELCOME_QUOTES.length)];
+  console.log('initWelcome called'); // Debug log
+  
+  // Make sure the element exists
+  if (!els.welcomeQuote) {
+    console.error('welcomeQuote element not found!');
+    return;
+  }
+  
+  // Select a random welcome quote
+  const randomIndex = Math.floor(Math.random() * WELCOME_QUOTES.length);
+  const q = WELCOME_QUOTES[randomIndex];
+  
+  console.log('Selected quote:', q); // Debug log
+  
+  // Set the text content
   els.welcomeQuote.textContent = q;
+  
+  // Force the quote to be visible
+  els.welcomeQuote.style.display = 'block';
+  els.welcomeQuote.style.visibility = 'visible';
+  
+  // Also check if the welcome overlay is visible
+  console.log('Welcome overlay visible:', els.welcomeOverlay.classList.contains('hidden'));
 }
 
 function dismissWelcome() {
   els.welcomeOverlay.classList.add('hidden');
-  setTimeout(() => { if (els.welcomeOverlay) els.welcomeOverlay.style.display = 'none'; }, 450);
+  setTimeout(() => { 
+    if (els.welcomeOverlay) {
+      els.welcomeOverlay.style.display = 'none';
+    }
+  }, 450);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -386,24 +435,402 @@ document.addEventListener('keydown', e => {
   }
 });
 
+
+/* ══════════════════════════════════════════════════════════
+   OFFLINE & SYNC MANAGER
+   ══════════════════════════════════════════════════════════ */
+
+class SyncManager {
+  constructor() {
+    this.isOnline = navigator.onLine;
+    this.pendingSync = [];
+    this.notificationTimeout = null;
+    this.setupEventListeners();
+  }
+
+  setupEventListeners() {
+    // Listen for online/offline events
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      console.log('📡 Back online — attempting sync');
+      this.showNotification('Connection restored. Syncing data...', 2000);
+      this.triggerSync();
+    });
+
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+      console.log('📴 Offline mode — saving changes locally');
+      this.showNotification('You are offline. Changes will sync when connection returns.', 3000);
+    });
+
+    // Listen for service worker messages
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SYNC_SUCCESS') {
+          console.log('✅ Sync successful:', event.data.payload);
+          this.showNotification('Data synced successfully!', 2000);
+          this.updateSyncStatus();
+        } else if (event.data && event.data.type === 'SYNC_FAILED') {
+          console.error('❌ Sync failed:', event.data.error);
+          this.showNotification('Sync failed. Will retry later.', 3000);
+        }
+      });
+    }
+  }
+
+  async registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registered with scope:', registration.scope);
+        
+        if ('sync' in registration) {
+          console.log('Background sync supported');
+        } else {
+          console.log('Background sync not supported — using fallback');
+        }
+        
+        return registration;
+      } catch (error) {
+        console.error('Service Worker registration failed:', error);
+      }
+    }
+    return null;
+  }
+
+  async queueDataForSync(data) {
+    await this.saveToLocalQueue(data);
+    
+    if (this.isOnline) {
+      await this.triggerSync();
+    } else {
+      console.log('Offline — data queued for later sync');
+      this.showNotification('Changes saved locally. Will sync when online.', 2000);
+    }
+  }
+
+  async saveToLocalQueue(data) {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('PomodoroSyncDB', 1);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        
+        // Make sure the object store exists
+        if (!db.objectStoreNames.contains('syncQueue')) {
+          db.close();
+          // Need to upgrade - reopen with upgrade
+          const upgradeRequest = indexedDB.open('PomodoroSyncDB', 2);
+          upgradeRequest.onupgradeneeded = (event) => {
+            const upgradedDb = event.target.result;
+            upgradedDb.createObjectStore('syncQueue', { keyPath: 'id' });
+          };
+          upgradeRequest.onsuccess = () => {
+            const upgradedDb = upgradeRequest.result;
+            const transaction = upgradedDb.transaction(['syncQueue'], 'readwrite');
+            const store = transaction.objectStore('syncQueue');
+            store.add({
+              id: Date.now(),
+              payload: data,
+              timestamp: new Date().toISOString(),
+              retries: 0
+            }).onsuccess = () => {
+              upgradedDb.close();
+              resolve();
+            };
+          };
+          upgradeRequest.onerror = () => reject(upgradeRequest.error);
+        } else {
+          const transaction = db.transaction(['syncQueue'], 'readwrite');
+          const store = transaction.objectStore('syncQueue');
+          
+          store.add({
+            id: Date.now(),
+            payload: data,
+            timestamp: new Date().toISOString(),
+            retries: 0
+          }).onsuccess = () => {
+            db.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        }
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('syncQueue')) {
+          db.createObjectStore('syncQueue', { keyPath: 'id' });
+        }
+      };
+    });
+  }
+
+  async triggerSync() {
+    if (!this.isOnline) {
+      console.log('Offline — skipping sync');
+      return;
+    }
+    
+    const pendingItems = await this.getPendingItems();
+    
+    if (pendingItems.length === 0) {
+      console.log('No pending items to sync');
+      this.updateSyncStatus();
+      return;
+    }
+    
+    console.log(`Syncing ${pendingItems.length} items...`);
+    this.showNotification(`Syncing ${pendingItems.length} item${pendingItems.length > 1 ? 's' : ''}...`, 2000);
+    
+    // Try background sync first
+    if (navigator.serviceWorker.controller && 'sync' in navigator.serviceWorker) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.sync.register('pomodoro-sync-queue');
+        console.log('Background sync triggered');
+      } catch (error) {
+        console.error('Background sync failed:', error);
+        await this.syncImmediately(pendingItems);
+      }
+    } else {
+      await this.syncImmediately(pendingItems);
+    }
+  }
+
+  async syncImmediately(pendingItems) {
+    let successCount = 0;
+    
+    for (const item of pendingItems) {
+      try {
+        const success = await this.sendToServer(item.payload);
+        if (success) {
+          await this.removeFromQueue(item.id);
+          successCount++;
+        }
+      } catch (error) {
+        console.error('Sync failed for item:', item.id, error);
+      }
+    }
+    
+    if (successCount > 0) {
+      this.showNotification(`Synced ${successCount} item${successCount > 1 ? 's' : ''}!`, 2000);
+      this.updateSyncStatus();
+      await this.reloadFromServer();
+    }
+  }
+
+  async getPendingItems() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('PomodoroSyncDB', 1);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        
+        if (!db.objectStoreNames.contains('syncQueue')) {
+          db.close();
+          resolve([]);
+          return;
+        }
+        
+        const transaction = db.transaction(['syncQueue'], 'readonly');
+        const store = transaction.objectStore('syncQueue');
+        const getAll = store.getAll();
+        
+        getAll.onsuccess = () => {
+          db.close();
+          resolve(getAll.result || []);
+        };
+        
+        getAll.onerror = () => {
+          db.close();
+          reject(getAll.error);
+        };
+      };
+    });
+  }
+
+  async removeFromQueue(id) {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('PomodoroSyncDB', 1);
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        
+        if (!db.objectStoreNames.contains('syncQueue')) {
+          db.close();
+          resolve();
+          return;
+        }
+        
+        const transaction = db.transaction(['syncQueue'], 'readwrite');
+        const store = transaction.objectStore('syncQueue');
+        const deleteRequest = store.delete(id);
+        
+        deleteRequest.onsuccess = () => {
+          db.close();
+          resolve();
+        };
+        
+        deleteRequest.onerror = () => {
+          db.close();
+          reject(deleteRequest.error);
+        };
+      };
+    });
+  }
+
+  async sendToServer(payload) {
+    // Mock server sync - replace with actual API call
+    console.log('Sending to server:', payload);
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return true; // Simulate success
+  }
+
+  async reloadFromServer() {
+    // Fetch latest data from server if needed
+    console.log('Reloading data from server...');
+  }
+
+  updateSyncStatus() {
+    let syncIndicator = document.getElementById('syncIndicator');
+    if (!syncIndicator) {
+      syncIndicator = document.createElement('div');
+      syncIndicator.id = 'syncIndicator';
+      syncIndicator.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        z-index: 1000;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      `;
+      document.body.appendChild(syncIndicator);
+    }
+    
+    if (!this.isOnline) {
+      syncIndicator.style.backgroundColor = '#ff6b6b';
+      syncIndicator.style.boxShadow = '0 0 8px rgba(255,107,107,0.5)';
+      syncIndicator.title = 'Offline mode';
+    } else {
+      syncIndicator.style.backgroundColor = '#4caf50';
+      syncIndicator.style.boxShadow = '0 0 8px rgba(76,175,80,0.5)';
+      syncIndicator.title = 'Online';
+    }
+  }
+
+  showNotification(message, duration = 3000) {
+    // Clear any existing timeout
+    if (this.notificationTimeout) {
+      clearTimeout(this.notificationTimeout);
+    }
+    
+    // Find or create notification element
+    let notification = document.getElementById('syncNotification');
+    
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'syncNotification';
+      notification.className = 'notification';
+      notification.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #e991b0, #d4708f);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 40px;
+        font-family: 'Playfair Display', serif;
+        font-size: 14px;
+        z-index: 1000;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      `;
+      document.body.appendChild(notification);
+    }
+    
+    // Update text and show
+    notification.textContent = message;
+    notification.style.opacity = '1';
+    notification.style.display = 'block';
+    
+    // Auto-hide after duration
+    this.notificationTimeout = setTimeout(() => {
+      notification.style.opacity = '0';
+      // Keep it hidden but don't remove from DOM
+      setTimeout(() => {
+        if (notification.style.opacity === '0') {
+          notification.style.display = 'none';
+        }
+      }, 300);
+    }, duration);
+  }
+}
+
 /* ══════════════════════════════════════════════════════════
    INIT
    ══════════════════════════════════════════════════════════ */
 
-function init() {
+async function init() {
+  console.log('Initializing app...');
+  
   loadState();
+  
+  // Initialize SyncManager
+  window.syncManager = new SyncManager();
+  await window.syncManager.registerServiceWorker();
+  
+  // Check for pending sync on load
+  setTimeout(() => {
+    if (window.syncManager) {
+      window.syncManager.triggerSync();
+    }
+  }, 1000);
+  
+  // Initialize all components
   initWelcome();
   renderDots();
-  showOpeningMaxim(); // shown once on load; rotates on first mode change
+  showOpeningMaxim();
   renderTasks();
   updateDisplay();
   updateRing();
   updateStats();
-  console.log(
-    `%c⚜ Diplomat's Pomodoro loaded for ${NAME}\n` +
-    `   Today: ${sessionsToday} sessions | Total: ${minutesTotal} min | Tasks done: ${tasksDoneCount()}`,
-    'color:#e991b0;font-family:serif;font-size:13px;'
-  );
+  
+  // Update sync status indicator
+  window.syncManager.updateSyncStatus();
+  
+  // Check online status
+  console.log(`📡 ${navigator.onLine ? 'Online' : 'Offline'} mode`);
+  
+  // Listen for online/offline events
+  window.addEventListener('online', () => {
+    console.log('📡 Back online!');
+    if (window.syncManager) {
+      window.syncManager.updateSyncStatus();
+      window.syncManager.triggerSync();
+    }
+  });
+  
+  window.addEventListener('offline', () => {
+    console.log('📴 Offline!');
+    if (window.syncManager) {
+      window.syncManager.updateSyncStatus();
+    }
+  });
 }
 
-init();
+// Run init when page loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
