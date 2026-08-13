@@ -1,141 +1,254 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Personalized Pomodoro for Her</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Pomodoro">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personalized Pomodoro for Her</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=EB+Garamond:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Pomodoro" />
+  </head>
+  <body>
+    <!-- Notification Toast -->
+    <div class="notification" id="notification">✦ Session Complete ✦</div>
 
-  <!-- Notification Toast -->
-  <div class="notification" id="notification">✦ Session Complete ✦</div>
-
-  <!-- Welcome Banner (shown once on load) -->
-  <div class="welcome-overlay" id="welcomeOverlay">
-    <div class="welcome-card">
-      <div class="welcome-seal">⚜</div>
-      <h2 class="welcome-title">Welcome back,<br><em>Monica</em></h2>
-      <p class="welcome-sub">Your study session awaits, Atty.</p>
-      <p class="welcome-quote" id="welcomeQuote"></p>
-      <button class="btn btn-primary welcome-btn" onclick="dismissWelcome()">Begin the Session</button>
-    </div>
-  </div>
-
-  <div class="container">
-
-    <!-- Header -->
-    <header>
-      <div class="header-seal">★ &nbsp; Monica's Private Study Chamber &nbsp; ★</div>
-      <h1><em>Monica's</em> Pomodoro</h1>
-      <p class="header-subtitle">Forged for your future</p>
-      <div class="divider"><span class="divider-icon">⚜</span></div>
-    </header>
-
-    <!-- Mode Tabs -->
-    <div class="mode-tabs">
-      <button class="mode-tab active" data-mode="work" onclick="setMode('work')">Focus Session</button>
-      <button class="mode-tab" data-mode="short" onclick="setMode('short')">Short Recess</button>
-      <button class="mode-tab" data-mode="long" onclick="setMode('long')">Long Recess</button>
+    <!-- Welcome Banner (shown once on load) -->
+    <div class="welcome-overlay" id="welcomeOverlay">
+      <div class="welcome-card">
+        <div class="welcome-seal">⚜</div>
+        <h2 class="welcome-title">Welcome back,<br /><em>Monica</em></h2>
+        <p class="welcome-sub">Your study session awaits, Atty.</p>
+        <p class="welcome-quote" id="welcomeQuote"></p>
+        <button class="btn btn-primary welcome-btn" onclick="dismissWelcome()">
+          Begin the Session
+        </button>
+      </div>
     </div>
 
-    <!-- Timer Card -->
-    <div class="timer-card" id="timerCard">
+    <div class="container">
+      <!-- Header -->
+      <header>
+        <div class="header-seal">
+          ★ &nbsp; Monica's Private Study Chamber &nbsp; ★
+        </div>
+        <h1><em>Monica's</em> Pomodoro</h1>
+        <p class="header-subtitle">Forged for your future</p>
+        <div class="divider"><span class="divider-icon">⚜</span></div>
 
-      <!-- Decorative top seal -->
-      <div class="card-seal-top" id="cardSealTop">⚜ Commence Session</div>
+        <!-- Customizer Bar (Theme + Timer Durations) -->
+        <div class="customizer-panel">
+          <!-- Theme Colors -->
+          <div class="customizer-row">
+            <span class="customizer-title">⚜ Palette:</span>
+            <div class="palette-controls">
+              <div class="picker-group" title="Accent Color">
+                <label>Accent</label>
+                <input type="color" id="colorPicker" value="#e991b0" />
+              </div>
+              <div class="picker-group" title="Background Color">
+                <label>Bg</label>
+                <input type="color" id="bgColorPicker" value="#fef9fb" />
+              </div>
+              <input
+                type="text"
+                id="hexInput"
+                placeholder="#e991b0"
+                maxlength="10"
+                class="hex-input"
+              />
+              <button
+                class="btn-reset-theme"
+                onclick="resetTheme()"
+                title="Reset theme to default"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
 
-      <!-- Ring Timer -->
-      <div class="ring-container">
-        <svg class="ring-svg" id="ringSvg" viewBox="0 0 240 240">
-          <circle class="ring-bg" cx="120" cy="120" r="110"/>
-          <circle class="ring-prog" id="ringProg" cx="120" cy="120" r="110"/>
-        </svg>
-        <div class="timer-center">
-          <div class="timer-display" id="timerDisplay">25:00</div>
-          <div class="timer-mode-label" id="modeLabel">Focus Time</div>
+          <div class="customizer-divider"></div>
+
+          <!-- Timer Intervals -->
+          <div class="customizer-row">
+            <span class="customizer-title">⏱ Durations (min):</span>
+            <div class="duration-controls">
+              <div class="duration-group">
+                <label for="workDurationInput">Focus</label>
+                <input
+                  type="number"
+                  id="workDurationInput"
+                  min="1"
+                  max="180"
+                  value="25"
+                  class="duration-input"
+                />
+              </div>
+              <div class="duration-group">
+                <label for="shortDurationInput">Short</label>
+                <input
+                  type="number"
+                  id="shortDurationInput"
+                  min="1"
+                  max="60"
+                  value="5"
+                  class="duration-input"
+                />
+              </div>
+              <div class="duration-group">
+                <label for="longDurationInput">Long</label>
+                <input
+                  type="number"
+                  id="longDurationInput"
+                  min="1"
+                  max="120"
+                  value="15"
+                  class="duration-input"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Mode Tabs -->
+      <div class="mode-tabs">
+        <button
+          class="mode-tab active"
+          data-mode="work"
+          onclick="setMode('work')"
+        >
+          Focus Session
+        </button>
+        <button class="mode-tab" data-mode="short" onclick="setMode('short')">
+          Short Recess
+        </button>
+        <button class="mode-tab" data-mode="long" onclick="setMode('long')">
+          Long Recess
+        </button>
+      </div>
+
+      <!-- Timer Card -->
+      <div class="timer-card" id="timerCard">
+        <!-- Decorative top seal -->
+        <div class="card-seal-top" id="cardSealTop">⚜ Commence Session</div>
+
+        <!-- Ring Timer -->
+        <div class="ring-container">
+          <svg class="ring-svg" id="ringSvg" viewBox="0 0 240 240">
+            <circle class="ring-bg" cx="120" cy="120" r="110" />
+            <circle class="ring-prog" id="ringProg" cx="120" cy="120" r="110" />
+          </svg>
+          <div class="timer-center">
+            <div class="timer-display" id="timerDisplay">25:00</div>
+            <div class="timer-mode-label" id="modeLabel">Focus Time</div>
+          </div>
+        </div>
+
+        <!-- Session Progress Dots -->
+        <div class="session-dots" id="sessionDots"></div>
+
+        <!-- Controls -->
+        <div class="controls">
+          <button class="btn btn-secondary" onclick="resetTimer()">
+            Reset
+          </button>
+          <button class="btn btn-primary" id="startBtn" onclick="toggleTimer()">
+            Begin
+          </button>
+          <button class="btn btn-secondary" onclick="skipSession()">
+            Skip
+          </button>
+        </div>
+
+        <!-- Rotating Quote -->
+        <div class="quote-section">
+          <div class="quote-text" id="quoteText"></div>
+          <div class="quote-author" id="quoteAuthor"></div>
         </div>
       </div>
 
-      <!-- Session Progress Dots -->
-      <div class="session-dots" id="sessionDots"></div>
-
-      <!-- Controls -->
-      <div class="controls">
-        <button class="btn btn-secondary" onclick="resetTimer()">Reset</button>
-        <button class="btn btn-primary" id="startBtn" onclick="toggleTimer()">Begin</button>
-        <button class="btn btn-secondary" onclick="skipSession()">Skip</button>
-      </div>
-
-      <!-- Rotating Quote -->
-      <div class="quote-section">
-        <div class="quote-text" id="quoteText"></div>
-        <div class="quote-author" id="quoteAuthor"></div>
-      </div>
-
-    </div>
-
-    <!-- Stats Row -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-value" id="statSessions">0</div>
-        <div class="stat-label">Sessions Today</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="statMinutes">0</div>
-        <div class="stat-label">Minutes Focused</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="statTasksDone">0</div>
-        <div class="stat-label">Tasks Done</div>
-      </div>
-    </div>
-
-    <!-- Tasks Panel -->
-    <div class="tasks-panel">
-      <div class="tasks-header">
-        <div class="tasks-title">Monica's Policy Agenda</div>
-        <div class="tasks-subtitle">⚜ Today's Legislative Session</div>
-      </div>
-      <div class="tasks-body">
-        <div class="task-input-row">
-          <input
-            class="task-input"
-            id="taskInput"
-            type="text"
-            placeholder="Add a study task, Monica…"
-            onkeydown="if(event.key==='Enter') addTask()"
-          >
-          <button class="btn-add" onclick="addTask()">+</button>
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value" id="statSessions">0</div>
+          <div class="stat-label">Sessions Today</div>
         </div>
-        <ul class="task-list" id="taskList"></ul>
+        <div class="stat-card">
+          <div class="stat-value" id="statMinutes">0</div>
+          <div class="stat-label">Minutes Focused</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statTasksDone">0</div>
+          <div class="stat-label">Tasks Done</div>
+        </div>
       </div>
+
+      <!-- Tasks Panel -->
+      <div class="tasks-panel">
+        <div class="tasks-header">
+          <div class="tasks-title">Monica's Policy Agenda</div>
+          <div class="tasks-subtitle">⚜ Today's Legislative Session</div>
+        </div>
+        <div class="tasks-body">
+          <div class="task-input-row">
+            <input
+              class="task-input"
+              id="taskInput"
+              type="text"
+              placeholder="Add a study task, Monica…"
+              onkeydown="if (event.key === 'Enter') addTask();"
+            />
+            <button class="btn-add" onclick="addTask()">+</button>
+          </div>
+          <ul class="task-list" id="taskList"></ul>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="app-footer">
+        <span>Crafted exclusively for <em>Monica</em></span>
+        <span class="footer-divider">⚜</span>
+        <span>Developed by Alexius Seth</span>
+      </footer>
     </div>
 
-    <!-- Footer -->
-    <footer class="app-footer">
-      <span>Crafted exclusively for <em>Monica</em></span>
-      <span class="footer-divider">⚜</span>
-      <span>Developed by Alexius Seth</span>
-    </footer>
+    <!-- Sync Status Indicator -->
+    <div
+      id="syncIndicator"
+      style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #4caf50;
+        z-index: 1000;
+      "
+    ></div>
 
-  </div>
+    <!-- Sync Notification -->
+    <div
+      id="syncNotification"
+      class="notification sync-notification"
+      style="display: none"
+    >
+      Syncing...
+    </div>
 
-
-
-  <!-- Sync Status Indicator -->
-<div id="syncIndicator" style="position: fixed; bottom: 20px; right: 20px; width: 10px; height: 10px; border-radius: 50%; background: #4caf50; z-index: 1000;"></div>
-
-<!-- Sync Notification -->
-<div id="syncNotification" class="notification sync-notification" style="display: none;">Syncing...</div>
-  
-<script src="app.js"></script>
-
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
