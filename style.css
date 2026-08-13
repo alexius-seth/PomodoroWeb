@@ -8,10 +8,10 @@
 /* ── CSS Variables ────────────────────────────────────────── */
 :root {
   /* Core pink palette */
-  --primary:        #e991b0;   /* soft rose — gentle, not harsh */   /* deep rose — main accent */
-  --primary-light:  #fdeef4;   /* near-white blush — very easy on eyes */   /* blush — backgrounds, hovers */
-  --primary-mid:    #f8c8d8;   /* light petal — borders */   /* mid pink — borders, subtle tones */
-  --primary-deep:   #d4708f;   /* muted rose — pressed states */   /* dark rose — pressed states */
+  --primary:        #e991b0;
+  --primary-light:  #fdeef4;
+  --primary-mid:    #f8c8d8;
+  --primary-deep:   #d4708f;
 
   /* Secondary (soft mauve for break states) */
   --secondary:      #ddb8cc;
@@ -19,11 +19,11 @@
   --secondary-deep: #c090a8;
 
   /* Neutrals */
-  --cream:          #fef9fb;   /* petal white */
-  --gold:           #c4a882;   /* warm taupe */
+  --cream:          #fef9fb;
+  --gold:           #c4a882;
   --gold-light:     #f5ede0;
-  --ink:            #3d2530;   /* softer dark */
-  --ink-light:      #8a6575;   /* muted mauve-grey */
+  --ink:            #3d2530;
+  --ink-light:      #8a6575;
   --white:          #ffffff;
 
   /* Shadows */
@@ -136,6 +136,17 @@ body::before {
   border-radius: 2px;
   line-height: 1.6;
   margin-bottom: 28px;
+  min-height: 80px;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  word-wrap: break-word;
+}
+
+.welcome-quote:empty::before {
+  content: "⚜ Preparing your inspiration...";
+  color: var(--ink-light);
+  font-style: italic;
 }
 
 .welcome-btn {
@@ -241,18 +252,8 @@ h1 em {
   color: var(--ink);
 }
 
-.mode-tab.active[data-mode="work"] {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--white);
-}
-
-.mode-tab.active[data-mode="short"] {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--white);
-}
-
+.mode-tab.active[data-mode="work"],
+.mode-tab.active[data-mode="short"],
 .mode-tab.active[data-mode="long"] {
   background: var(--primary);
   border-color: var(--primary);
@@ -459,7 +460,6 @@ h1 em {
   font-family: 'EB Garamond', serif;
 }
 
-/* Legal maxim translation — shown inline after the Latin */
 .maxim-translation {
   display: block;
   font-style: normal;
@@ -470,7 +470,6 @@ h1 em {
   line-height: 1.6;
 }
 
-/* Latin phrase — emphasized */
 .quote-text em {
   font-style: italic;
   color: var(--primary-deep);
@@ -673,91 +672,6 @@ h1 em {
 
 .task-item:hover .task-delete { opacity: 1; }
 
-
-/* ── Theme Customizer Bar ─────────────────────────────────── */
-.palette-picker-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 24px;
-  padding: 8px 16px;
-  background: var(--white);
-  border: 1px solid var(--primary-mid);
-  border-radius: var(--radius);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-}
-
-.palette-title {
-  font-family: 'EB Garamond', serif;
-  font-size: 12px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink-light);
-}
-
-.palette-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-input[type="color"] {
-  -webkit-appearance: none;
-  border: 1px solid var(--primary-mid);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  background: none;
-  padding: 0;
-}
-
-input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-input[type="color"]::-webkit-color-swatch {
-  border: none;
-  border-radius: 50%;
-}
-
-.hex-input {
-  width: 80px;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 14px;
-  padding: 4px 8px;
-  border: 1px solid var(--primary-mid);
-  border-radius: var(--radius);
-  background: var(--input-bg);
-  color: var(--input-text);
-  text-align: center;
-  outline: none;
-}
-
-.hex-input:focus {
-  border-color: var(--primary);
-  background: var(--white);
-  color: var(--input-text);
-}
-
-.btn-reset-theme {
-  font-family: 'EB Garamond', serif;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: transparent;
-  border: none;
-  color: var(--ink-light);
-  cursor: pointer;
-  text-decoration: underline;
-  transition: color var(--transition);
-}
-
-.btn-reset-theme:hover {
-  color: var(--primary);
-}
-
 /* ── Customizer Panel ─────────────────────────────────────── */
 .customizer-panel {
   display: flex;
@@ -840,14 +754,6 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 }
 
 .hex-input { width: 76px; }
-
-.duration-input {
-  background: var(--input-bg);
-  color: var(--input-text);
-  border: 1px solid var(--primary-mid);
-  border-radius: var(--radius);
-  outline: none;
-}
 
 .duration-input::-webkit-outer-spin-button,
 .duration-input::-webkit-inner-spin-button {
@@ -934,27 +840,10 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
   50%       { filter: drop-shadow(0 0 16px var(--primary)); }
 }
 
-@keyframes pulseBreak {
-  0%, 100% { filter: drop-shadow(0 0 4px var(--primary-mid)); }
-  50%       { filter: drop-shadow(0 0 16px var(--primary)); }
-}
+.ring-svg.ticking { animation: pulseWork 2s ease-in-out infinite; }
 
-.ring-svg.ticking            { animation: pulseWork  2s ease-in-out infinite; }
-.ring-svg.ticking.break-anim { animation: pulseBreak 2s ease-in-out infinite; }
-
-/* ── Responsive ───────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .timer-card  { padding: 16px 16px 28px; }
-  .stats-row   { gap: 8px; }
-  .stat-value  { font-size: 24px; }
-  .controls    { flex-wrap: wrap; }
-  .btn-primary { padding: 12px 32px; }
-  .tasks-header { flex-direction: column; align-items: flex-start; }
-}
-
-/* Mobile Optimizations */
+/* ── Responsive & Mobile Optimizations ────────────────────── */
 @media (max-width: 768px) {
-  /* Larger touch targets */
   .mode-tab,
   .btn,
   .task-check,
@@ -963,102 +852,20 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
     min-width: 44px;
   }
   
-  .task-delete {
-    padding: 12px;
-  }
-  
-  /* Prevent zoom on input focus */
-  .task-input {
-    font-size: 16px;
-  }
-  
-  /* Better spacing for mobile */
-  .container {
-    padding: 20px 16px 40px;
-  }
-  
-  .timer-card {
-    padding: 12px 20px 24px;
-  }
-  
-  /* Make sync indicator more visible on mobile */
-  #syncIndicator {
-    width: 14px;
-    height: 14px;
-    bottom: 16px;
-    right: 16px;
-  }
+  .task-delete { padding: 12px; }
+  .task-input { font-size: 16px; }
+  .container { padding: 20px 16px 40px; }
+  .timer-card { padding: 12px 20px 24px; }
 }
 
-/* Add viewport meta for proper mobile scaling */
 @media (max-width: 480px) {
-  .ring-container {
-    width: 200px;
-    height: 200px;
-  }
-  
-  .ring-svg {
-    width: 200px;
-    height: 200px;
-  }
-  
-  .timer-display {
-    font-size: 42px;
-  }
-}
-
-.welcome-quote {
-  font-size: 13px;
-  font-style: italic;
-  color: var(--ink-light);
-  border-left: 3px solid var(--primary);
-  text-align: left;
-  padding: 10px 14px;
-  background: var(--primary-light);
-  border-radius: 2px;
-  line-height: 1.6;
-  margin-bottom: 28px;
-  min-height: 80px; /* Ensure enough space */
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  word-wrap: break-word;
-}
-
-/* Style for empty welcome quote - show placeholder */
-.welcome-quote:empty::before {
-  content: "⚜ Preparing your inspiration...";
-  color: var(--ink-light);
-  font-style: italic;
-}
-
-/* Sync Notification Styles - Fixed */
-.sync-notification {
-  position: fixed;
-  bottom: 80px;
-  top: auto;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, var(--primary), var(--primary-deep));
-  color: white;
-  padding: 12px 24px;
-  border-radius: 40px;
-  font-family: 'Playfair Display', serif;
-  font-size: 14px;
-  z-index: 1000;
-  white-space: nowrap;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  opacity: 0;
-  display: none;
-}
-
-.sync-notification.show {
-  display: block !important;
-  opacity: 1 !important;
-}
-
-/* Don't override display with !important on hidden state */
-#syncNotification {
-  transition: opacity 0.3s ease;
+  .timer-card  { padding: 16px 16px 28px; }
+  .stats-row   { gap: 8px; }
+  .stat-value  { font-size: 24px; }
+  .controls    { flex-wrap: wrap; }
+  .btn-primary { padding: 12px 32px; }
+  .tasks-header { flex-direction: column; align-items: flex-start; }
+  .ring-container { width: 200px; height: 200px; }
+  .ring-svg { width: 200px; height: 200px; }
+  .timer-display { font-size: 42px; }
 }

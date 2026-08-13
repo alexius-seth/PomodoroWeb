@@ -1,12 +1,11 @@
-/* =
-
+/* ============================================================
    PERSISTENCE (localStorage keys):
      dp_sessions_today   — work sessions completed today (number)
      dp_minutes_total    — total focused minutes all time (number)
      dp_last_study_date  — last date a session was completed (YYYY-MM-DD)
      dp_tasks            — task list (JSON array)
      dp_theme_color      — custom theme color (hex string)
-   */
+   ============================================================ */
 
 "use strict";
 
@@ -155,36 +154,12 @@ function saveState() {
   lsSet(KEYS.sessionsToday, sessionsToday);
   lsSet(KEYS.minutesTotal, minutesTotal);
   lsSet(KEYS.lastStudyDate, todayStr());
-
-  // Queue for sync (if sync manager exists)
-  if (window.syncManager && window.syncManager.isOnline) {
-    window.syncManager.queueDataForSync({
-      type: "STATE_UPDATE",
-      data: {
-        sessionsToday: sessionsToday,
-        minutesTotal: minutesTotal,
-        lastStudyDate: todayStr(),
-        timestamp: new Date().toISOString(),
-      },
-    });
-  }
 }
 
-// Replace your existing saveTasks function
 function saveTasks() {
   lsSet(KEYS.tasks, tasks);
-
-  // Queue for sync (if sync manager exists)
-  if (window.syncManager && window.syncManager.isOnline) {
-    window.syncManager.queueDataForSync({
-      type: "TASKS_UPDATE",
-      data: {
-        tasks: tasks,
-        timestamp: new Date().toISOString(),
-      },
-    });
-  }
 }
+
 /* ══════════════════════════════════════════════════════════
    STATE
    ══════════════════════════════════════════════════════════ */
@@ -240,26 +215,9 @@ function initWelcome() {
 
   const randomIndex = Math.floor(Math.random() * WELCOME_QUOTES.length);
   quoteElem.textContent = WELCOME_QUOTES[randomIndex];
+  quoteElem.style.display = "block";
+  quoteElem.style.visibility = "visible";
 }
-
-// Select a random welcome quote
-const randomIndex = Math.floor(Math.random() * WELCOME_QUOTES.length);
-const q = WELCOME_QUOTES[randomIndex];
-
-console.log("Selected quote:", q); // Debug log
-
-// Set the text content
-els.welcomeQuote.textContent = q;
-
-// Force the quote to be visible
-els.welcomeQuote.style.display = "block";
-els.welcomeQuote.style.visibility = "visible";
-
-// Also check if the welcome overlay is visible
-console.log(
-  "Welcome overlay visible:",
-  els.welcomeOverlay.classList.contains("hidden"),
-);
 
 function dismissWelcome() {
   els.welcomeOverlay.classList.add("hidden");
@@ -279,7 +237,6 @@ function setMode(mode) {
   currentMode = mode;
   timeLeft = MODES[mode].duration;
   totalTime = MODES[mode].duration;
-  const isBreak = MODES[mode].isBreak;
   document
     .querySelectorAll(".mode-tab")
     .forEach((t) => t.classList.toggle("active", t.dataset.mode === mode));
@@ -388,7 +345,6 @@ function updateStats() {
    QUOTES
    ══════════════════════════════════════════════════════════ */
 
-/* Show "Pacta sunt servanda" once on first load */
 function showOpeningMaxim() {
   els.quoteText.innerHTML =
     `<em style="font-style:italic;color:var(--primary-deep);font-size:15px;letter-spacing:0.03em;">Pacta sunt servanda</em>` +
@@ -460,7 +416,7 @@ function addTask() {
   input.focus();
   saveTasks();
   renderTasks();
-  updateStats(); // tasks done count may change
+  updateStats();
 }
 
 function toggleTask(id) {
@@ -469,7 +425,7 @@ function toggleTask(id) {
     task.done = !task.done;
     saveTasks();
     renderTasks();
-    updateStats(); // update tasks done count live
+    updateStats();
   }
 }
 
@@ -511,7 +467,6 @@ function escapeHtml(str) {
    ══════════════════════════════════════════════════════════ */
 
 document.addEventListener("keydown", (e) => {
-  // Ignore shortcuts if the user is typing in ANY input or text field
   if (["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
 
   switch (e.code) {
@@ -536,384 +491,6 @@ document.addEventListener("keydown", (e) => {
       break;
   }
 });
-
-/* ══════════════════════════════════════════════════════════
-   OFFLINE & SYNC MANAGER
-   ══════════════════════════════════════════════════════════ */
-
-class SyncManager {
-  constructor() {
-    this.isOnline = navigator.onLine;
-    this.pendingSync = [];
-    this.notificationTimeout = null;
-    this.hasShownInitialSync = false; // Add this flag
-    this.setupEventListeners();
-  }
-
-  setupEventListeners() {
-    // Listen for online/offline events
-    window.addEventListener("online", () => {
-      this.isOnline = true;
-      console.log("📡 Back online — attempting sync");
-      this.showNotification("Connection restored. Syncing data...", 2000);
-      this.triggerSync();
-    });
-
-    window.addEventListener("offline", () => {
-      this.isOnline = false;
-      console.log("📴 Offline mode — saving changes locally");
-      this.showNotification(
-        "You are offline. Changes will sync when connection returns.",
-        3000,
-      );
-    });
-
-    // Listen for service worker messages
-    if (navigator.serviceWorker) {
-      navigator.serviceWorker.addEventListener("message", (event) => {
-        if (event.data && event.data.type === "SYNC_SUCCESS") {
-          console.log("✅ Sync successful:", event.data.payload);
-          this.showNotification("Data synced successfully!", 2000);
-          this.updateSyncStatus();
-        } else if (event.data && event.data.type === "SYNC_FAILED") {
-          console.error("❌ Sync failed:", event.data.error);
-          this.showNotification("Sync failed. Will retry later.", 3000);
-        }
-      });
-    }
-  }
-
-  async registerServiceWorker() {
-    if ("serviceWorker" in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register("/sw.js");
-        console.log(
-          "Service Worker registered with scope:",
-          registration.scope,
-        );
-
-        if ("sync" in registration) {
-          console.log("Background sync supported");
-        } else {
-          console.log("Background sync not supported — using fallback");
-        }
-
-        return registration;
-      } catch (error) {
-        console.error("Service Worker registration failed:", error);
-      }
-    }
-    return null;
-  }
-
-  async queueDataForSync(data) {
-    await this.saveToLocalQueue(data);
-
-    if (this.isOnline) {
-      await this.triggerSync();
-    } else {
-      console.log("Offline — data queued for later sync");
-      this.showNotification(
-        "Changes saved locally. Will sync when online.",
-        2000,
-      );
-    }
-  }
-
-  async saveToLocalQueue(data) {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open("PomodoroSyncDB", 1);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        const db = request.result;
-
-        // Make sure the object store exists
-        if (!db.objectStoreNames.contains("syncQueue")) {
-          db.close();
-          // Need to upgrade - reopen with upgrade
-          const upgradeRequest = indexedDB.open("PomodoroSyncDB", 2);
-          upgradeRequest.onupgradeneeded = (event) => {
-            const upgradedDb = event.target.result;
-            upgradedDb.createObjectStore("syncQueue", { keyPath: "id" });
-          };
-          upgradeRequest.onsuccess = () => {
-            const upgradedDb = upgradeRequest.result;
-            const transaction = upgradedDb.transaction(
-              ["syncQueue"],
-              "readwrite",
-            );
-            const store = transaction.objectStore("syncQueue");
-            store.add({
-              id: Date.now(),
-              payload: data,
-              timestamp: new Date().toISOString(),
-              retries: 0,
-            }).onsuccess = () => {
-              upgradedDb.close();
-              resolve();
-            };
-          };
-          upgradeRequest.onerror = () => reject(upgradeRequest.error);
-        } else {
-          const transaction = db.transaction(["syncQueue"], "readwrite");
-          const store = transaction.objectStore("syncQueue");
-
-          store.add({
-            id: Date.now(),
-            payload: data,
-            timestamp: new Date().toISOString(),
-            retries: 0,
-          }).onsuccess = () => {
-            db.close();
-            resolve();
-          };
-          transaction.onerror = () => reject(transaction.error);
-        }
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains("syncQueue")) {
-          db.createObjectStore("syncQueue", { keyPath: "id" });
-        }
-      };
-    });
-  }
-
-  async triggerSync(isInitialLoad = false) {
-    if (!this.isOnline) {
-      console.log("Offline — skipping sync");
-      return;
-    }
-
-    const pendingItems = await this.getPendingItems();
-
-    if (pendingItems.length === 0) {
-      console.log("No pending items to sync");
-      this.updateSyncStatus();
-      // Hide any existing notification
-      const notification = document.getElementById("syncNotification");
-      if (notification) {
-        notification.style.opacity = "0";
-        notification.classList.remove("show");
-        setTimeout(() => {
-          if (
-            notification.style.opacity === "0" ||
-            notification.style.opacity === ""
-          ) {
-            notification.style.display = "none";
-          }
-        }, 300);
-      }
-      return;
-    }
-
-    // Only show notification if there are items AND it's not the initial load
-    if (!isInitialLoad) {
-      console.log(`Syncing ${pendingItems.length} items...`);
-      this.showNotification(
-        `Syncing ${pendingItems.length} item${pendingItems.length > 1 ? "s" : ""}...`,
-        2000,
-      );
-    } else {
-      console.log(
-        `Found ${pendingItems.length} pending items to sync (silent sync)`,
-      );
-    }
-
-    // Try background sync first
-    if (
-      navigator.serviceWorker.controller &&
-      "sync" in navigator.serviceWorker
-    ) {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        await registration.sync.register("pomodoro-sync-queue");
-        console.log("Background sync triggered");
-      } catch (error) {
-        console.error("Background sync failed:", error);
-        await this.syncImmediately(pendingItems);
-      }
-    } else {
-      await this.syncImmediately(pendingItems);
-    }
-  }
-
-  async syncImmediately(pendingItems) {
-    let successCount = 0;
-
-    for (const item of pendingItems) {
-      try {
-        const success = await this.sendToServer(item.payload);
-        if (success) {
-          await this.removeFromQueue(item.id);
-          successCount++;
-        }
-      } catch (error) {
-        console.error("Sync failed for item:", item.id, error);
-      }
-    }
-
-    if (successCount > 0) {
-      this.showNotification(
-        `Synced ${successCount} item${successCount > 1 ? "s" : ""}!`,
-        2000,
-      );
-      this.updateSyncStatus();
-      await this.reloadFromServer();
-    }
-  }
-
-  async getPendingItems() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open("PomodoroSyncDB", 1);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        const db = request.result;
-
-        if (!db.objectStoreNames.contains("syncQueue")) {
-          db.close();
-          resolve([]);
-          return;
-        }
-
-        const transaction = db.transaction(["syncQueue"], "readonly");
-        const store = transaction.objectStore("syncQueue");
-        const getAll = store.getAll();
-
-        getAll.onsuccess = () => {
-          db.close();
-          resolve(getAll.result || []);
-        };
-
-        getAll.onerror = () => {
-          db.close();
-          reject(getAll.error);
-        };
-      };
-    });
-  }
-
-  async removeFromQueue(id) {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open("PomodoroSyncDB", 1);
-
-      request.onsuccess = () => {
-        const db = request.result;
-
-        if (!db.objectStoreNames.contains("syncQueue")) {
-          db.close();
-          resolve();
-          return;
-        }
-
-        const transaction = db.transaction(["syncQueue"], "readwrite");
-        const store = transaction.objectStore("syncQueue");
-        const deleteRequest = store.delete(id);
-
-        deleteRequest.onsuccess = () => {
-          db.close();
-          resolve();
-        };
-
-        deleteRequest.onerror = () => {
-          db.close();
-          reject(deleteRequest.error);
-        };
-      };
-    });
-  }
-
-  async sendToServer(payload) {
-    // Mock server sync - replace with actual API call
-    console.log("Sending to server:", payload);
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return true; // Simulate success
-  }
-
-  async reloadFromServer() {
-    // Fetch latest data from server if needed
-    console.log("Reloading data from server...");
-  }
-
-  updateSyncStatus() {
-    let syncIndicator = document.getElementById("syncIndicator");
-    if (!syncIndicator) {
-      syncIndicator = document.createElement("div");
-      syncIndicator.id = "syncIndicator";
-      syncIndicator.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        z-index: 1000;
-        transition: all 0.3s ease;
-        cursor: pointer;
-      `;
-      document.body.appendChild(syncIndicator);
-    }
-
-    if (!this.isOnline) {
-      syncIndicator.style.backgroundColor = "#ff6b6b";
-      syncIndicator.style.boxShadow = "0 0 8px rgba(255,107,107,0.5)";
-      syncIndicator.title = "Offline mode";
-    } else {
-      syncIndicator.style.backgroundColor = "#4caf50";
-      syncIndicator.style.boxShadow = "0 0 8px rgba(76,175,80,0.5)";
-      syncIndicator.title = "Online";
-    }
-  }
-
-  showNotification(message, duration = 3000) {
-    // Clear any existing timeout
-    if (this.notificationTimeout) {
-      clearTimeout(this.notificationTimeout);
-    }
-
-    // Don't show empty notifications
-    if (!message || message.trim() === "") {
-      return;
-    }
-
-    // Find or create notification element
-    let notification = document.getElementById("syncNotification");
-
-    if (!notification) {
-      notification = document.createElement("div");
-      notification.id = "syncNotification";
-      notification.className = "sync-notification";
-      notification.textContent = message;
-      document.body.appendChild(notification);
-    }
-
-    // Update text
-    notification.textContent = message;
-
-    // Show notification
-    notification.style.display = "block";
-    notification.style.opacity = "1";
-    notification.classList.add("show");
-
-    // Auto-hide after duration
-    this.notificationTimeout = setTimeout(() => {
-      notification.style.opacity = "0";
-      notification.classList.remove("show");
-      setTimeout(() => {
-        if (
-          notification.style.opacity === "0" ||
-          notification.style.opacity === ""
-        ) {
-          notification.style.display = "none";
-        }
-      }, 300);
-    }, duration);
-  }
-}
 
 /* ══════════════════════════════════════════════════════════
    DYNAMIC THEME & BACKGROUND COLOR
@@ -1001,23 +578,20 @@ function applyBackgroundColor(rawColor, save = true) {
   const root = document.documentElement;
   root.style.setProperty("--cream", formatted);
 
-  // Extract Hue, Saturation, Lightness
   const { h, s, l } = hexToHSL(formatted);
 
   if (l < 50) {
-    // --- FULL DARK MODE ---
-    root.style.setProperty("--ink", "#fcf7f9");                  // Crisp light text
-    root.style.setProperty("--ink-light", "#d8b8c5");            // Soft blush labels
-    root.style.setProperty("--card-bg", `hsl(${h}, ${Math.min(s, 25)}%, 16%)`);  // Sleek dark cards
-    root.style.setProperty("--input-bg", `hsl(${h}, ${Math.min(s, 25)}%, 22%)`); // Visible input fields
-    root.style.setProperty("--input-text", "#fcf7f9");           // Bright white input text
+    root.style.setProperty("--ink", "#fcf7f9");
+    root.style.setProperty("--ink-light", "#d8b8c5");
+    root.style.setProperty("--card-bg", `hsl(${h}, ${Math.min(s, 25)}%, 16%)`);
+    root.style.setProperty("--input-bg", `hsl(${h}, ${Math.min(s, 25)}%, 22%)`);
+    root.style.setProperty("--input-text", "#fcf7f9");
   } else {
-    // --- FULL LIGHT MODE ---
-    root.style.setProperty("--ink", "#3d2530");                  // Original dark text
-    root.style.setProperty("--ink-light", "#8a6575");            // Original muted mauve
-    root.style.setProperty("--card-bg", "#ffffff");              // White cards
-    root.style.setProperty("--input-bg", "#fef9fb");             // Soft blush inputs
-    root.style.setProperty("--input-text", "#3d2530");           // Dark input text
+    root.style.setProperty("--ink", "#3d2530");
+    root.style.setProperty("--ink-light", "#8a6575");
+    root.style.setProperty("--card-bg", "#ffffff");
+    root.style.setProperty("--input-bg", "#fef9fb");
+    root.style.setProperty("--input-text", "#3d2530");
   }
 
   const bgPicker = $("bgColorPicker");
@@ -1027,6 +601,7 @@ function applyBackgroundColor(rawColor, save = true) {
 
   if (save) lsSet(KEYS.bgColor, formatted);
 }
+
 function resetTheme() {
   localStorage.removeItem(KEYS.themeColor);
   localStorage.removeItem(KEYS.bgColor);
@@ -1121,7 +696,6 @@ function initDurationListeners() {
 
       MODES[mode].duration = val * 60;
 
-      // Persist values
       const currentSaved = lsGet(KEYS.durations, {
         work: 25,
         short: 5,
@@ -1130,7 +704,6 @@ function initDurationListeners() {
       currentSaved[mode] = val;
       lsSet(KEYS.durations, currentSaved);
 
-      // Reset active timer to new length if not actively running
       if (!isRunning && currentMode === mode) {
         timeLeft = MODES[mode].duration;
         totalTime = MODES[mode].duration;
@@ -1150,10 +723,10 @@ function initDurationListeners() {
 }
 
 /* ══════════════════════════════════════════════════════════
-   REORDERED INIT FUNCTION
+   INIT FUNCTION
    ══════════════════════════════════════════════════════════ */
 
-async function init() {
+function init() {
   console.log("Initializing app...");
 
   loadState();
@@ -1167,16 +740,8 @@ async function init() {
   updateDisplay();
   updateRing();
   updateStats();
-
-  try {
-    window.syncManager = new SyncManager();
-    await window.syncManager.registerServiceWorker();
-  } catch (err) {
-    console.warn("Sync manager failed to initialize:", err);
-  }
 }
 
-// Ensure init executes when DOM is loaded
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", init);
 } else {
