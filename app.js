@@ -12,12 +12,13 @@
 const NAME = "Monica"; // <-- Set your name here for personalized greetings and stats
 
 const WELCOME_QUOTES = [
-  `"Good morning, ${NAME}. The world is shaped by those who show up — and you're here."`,
-  `"Every great political theorist started exactly where you are now, ${NAME}."`,
-  `"Today's study session is tomorrow's policy, ${NAME}. Let's begin."`,
-  `"History remembers those who prepared, ${NAME}. Your moment is being forged right now."`,
-  `"The pen is mightier than the sword — and yours is about to do great work, ${NAME}."`,
+  `Good morning, ${NAME}. The world is shaped by those who show up — and you're here.`,
+  `Every great political theorist started exactly where you are now, ${NAME}.`,
+  `Today's study session is tomorrow's policy, ${NAME}. Let's begin.`,
+  `History remembers those who prepared, ${NAME}. Your moment is being forged right now.`,
+  `The pen is mightier than the sword — and yours is about to do great work, ${NAME}.`,
 ];
+
 
 /* ── Storage Keys ─────────────────────────────────────────── */
 const KEYS = {
@@ -212,13 +213,11 @@ const els = {
    ══════════════════════════════════════════════════════════ */
 
 function initWelcome() {
-  const quoteElem = els.welcomeQuote || $("welcomeQuote");
+  const quoteElem = document.getElementById("welcomeQuote");
   if (!quoteElem) return;
 
   const randomIndex = Math.floor(Math.random() * WELCOME_QUOTES.length);
-  quoteElem.textContent = WELCOME_QUOTES[randomIndex];
-  quoteElem.style.display = "block";
-  quoteElem.style.visibility = "visible";
+  quoteElem.textContent = `"${WELCOME_QUOTES[randomIndex]}"`;
 }
 
 function dismissWelcome() {

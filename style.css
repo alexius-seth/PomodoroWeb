@@ -143,11 +143,6 @@ body::before {
   word-wrap: break-word;
 }
 
-.welcome-quote:empty::before {
-  content: "⚜ Preparing your inspiration...";
-  color: var(--ink-light);
-  font-style: italic;
-}
 
 .welcome-btn {
   width: 100%;
@@ -728,6 +723,7 @@ h1 em {
 
 input[type="color"] {
   -webkit-appearance: none;
+  appearance: none;
   border: 1px solid var(--primary-mid);
   width: 26px;
   height: 26px;
