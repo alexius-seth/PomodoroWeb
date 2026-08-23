@@ -11,6 +11,14 @@
 
 const NAME = "Monica"; // <-- Set your name here for personalized greetings and stats
 
+const WELCOME_QUOTES = [
+  `"Good morning, ${NAME}. The world is shaped by those who show up — and you're here."`,
+  `"Every great political theorist started exactly where you are now, ${NAME}."`,
+  `"Today's study session is tomorrow's policy, ${NAME}. Let's begin."`,
+  `"History remembers those who prepared, ${NAME}. Your moment is being forged right now."`,
+  `"The pen is mightier than the sword — and yours is about to do great work, ${NAME}."`,
+];
+
 /* ── Storage Keys ─────────────────────────────────────────── */
 const KEYS = {
   sessionsToday: "dp_sessions_today",
@@ -103,13 +111,7 @@ const QUOTES = [
   },
 ];
 
-const WELCOME_QUOTES = [
-  `"Good morning, ${NAME}. The world is shaped by those who show up — and you're here."`,
-  `"Every great political theorist started exactly where you are now, ${NAME}."`,
-  `"Today's study session is tomorrow's policy, ${NAME}. Let's begin."`,
-  `"History remembers those who prepared, ${NAME}. Your moment is being forged right now."`,
-  `"The pen is mightier than the sword — and yours is about to do great work, ${NAME}."`,
-];
+
 
 /* ══════════════════════════════════════════════════════════
    STORAGE HELPERS
