@@ -298,7 +298,7 @@ function tick() {
 }
 
 /* ── Session completion ───────────────────────────────────── */
-f/* ── Session completion ───────────────────────────────────── */
+/* ── Session completion ───────────────────────────────────── */
 function onSessionComplete() {
   els.ringSvg.classList.remove("ticking");
   els.startBtn.textContent = "Begin";
