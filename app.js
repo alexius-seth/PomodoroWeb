@@ -297,6 +297,7 @@ function tick() {
 }
 
 /* ── Session completion ───────────────────────────────────── */
+f/* ── Session completion ───────────────────────────────────── */
 function onSessionComplete() {
   els.ringSvg.classList.remove("ticking");
   els.startBtn.textContent = "Begin";
@@ -305,7 +306,13 @@ function onSessionComplete() {
   if (!MODES[currentMode].isBreak) {
     sessionsToday++;
     sessionsCycle++;
-    minutesTotal += 25;
+    // OLD (Hardcoded):
+    // minutesTotal += 25;
+    
+    // NEW (Dynamic):
+    const sessionMinutes = Math.round(MODES[currentMode].duration / 60);
+    minutesTotal += sessionMinutes;
+
     saveState();
     updateStats();
     renderDots();
@@ -317,7 +324,6 @@ function onSessionComplete() {
     setTimeout(() => setMode("work"), 900);
   }
 }
-
 function updateDisplay() {
   els.timerDisplay.textContent = `${String(Math.floor(timeLeft / 60)).padStart(2, "0")}:${String(timeLeft % 60).padStart(2, "0")}`;
 }
